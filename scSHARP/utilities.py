@@ -347,7 +347,8 @@ def knn_consensus_batch(counts, preds, n_neighbors, converge=False, one_epoch=Fa
             break
         preds = new_preds
         count += 1
-        print(count)
+        if count % 10 == 0:
+            print(f'kNN iter: {count}')
         if count > 50: break
         #break
     return preds.detach().numpy()
