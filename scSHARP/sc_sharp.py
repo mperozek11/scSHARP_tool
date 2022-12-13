@@ -5,9 +5,10 @@ import numpy as np
 import pandas as pd
 import torch
 import os
-from .gcn_model import GCNModel
+import utilities
+#from .gcn_model import GCNModel
 import torch
-from .pca_model import PCAModel
+#from .pca_model import PCAModel
 from sklearn.decomposition import PCA
 import subprocess
 import matplotlib.pyplot as plt
@@ -38,11 +39,14 @@ class scSHARP:
         
     def run_tools(self, out_path, ref_path, ref_label_path):
         try:
-            run_script = "Rscript ./rdriver.r"
-            bash = run_script + " " + self.data_path + " " + out_path + " " + self.marker_path + " " + ref_path + " " + ref_label_path
-            subprocess.call(bash, shell=True)
+            package_path = os.path.dirname(os.path.realpath(__file__))
+            run_script = "Rscript " + os.path.join((package_path), "rdriver.r")
+            print(run_script)
+            command = run_script + " " + self.data_path + " " + out_path + " " + str(self.marker_path) + " " + ref_path + " " + ref_label_path
+
+            subprocess.call(command, shell=True)
             
-            self.preds_path = out_path
+            self.preds_path = ".preds_att_marker_test.csv"
             
             # R output file read
         except:
