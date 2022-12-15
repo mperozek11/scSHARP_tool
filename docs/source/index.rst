@@ -13,12 +13,13 @@ Welcome to scSHARP's documentation!
    This project is under active development. Poopp
 
 
+Contents
+--------
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   usage
 
-.. automodule:: scSHARP.sc_sharp
-   :members:
+.. .. automodule:: scSHARP.utilities
+..    :members:
 
 
 Indices and tables

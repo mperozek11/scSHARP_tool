@@ -3,9 +3,14 @@ import pandas as pd
 import numpy as np
 from captum.attr import IntegratedGradients, DeepLift, DeepLiftShap, FeaturePermutation
 
-# TODO check with Daniel that we can kill the old interpret model method or at least rename it
-
 def interpret_model(model, X, predictions, genes, batch_size, device, batches=None):
+    """Performs PCA interpretation on model
+
+    Parameters
+    ----------
+    
+    
+    """
     dataset  = torch.utils.data.TensorDataset(torch.FloatTensor(X), predictions.cpu())
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
     predictions = predictions.cpu()

@@ -15,7 +15,22 @@ import seaborn as sns
 from sklearn import preprocessing
 
 class scSHARP:
-    """Class for prediction, analysis, and visualization of cell type based on DGE matrix"""
+    """Class for prediction, analysis, and visualization of cell type based on DGE matrix
+    
+    scSHARP object manages I/O directories, running of component tools, 
+    as well as prediction and analysis using scSHARP model.
+    
+    Attributes:
+    -----------
+        data_path: path to DGE matrix csv
+        preds_path: path to component tool output file csv format
+        tools: list of component tool string names
+        marker_path: path to marker gene txt file
+        neighbors: number of neighbors used for tool consensus default value is 2
+        config: config file for the 
+        ncells: number of cells from dataset to use for model prediction
+        pre_processed: boolean. True when dataset has been preprocessed
+    """
 
     def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all"):
         self.data_path = data_path
@@ -40,6 +55,10 @@ class scSHARP:
         self.confident_labels = None
         
     def run_tools(self, out_path, ref_path, ref_label_path):
+        """Method for running component tools
+        
+        Runs component tools from R script, saving output and pointing scSHARP data_path to output csv
+        """
         try:
             run_script = "Rscript ./rdriver.r"
             bash = run_script + " " + self.data_path + " " + out_path + " " + self.marker_path + " " + ref_path + " " + ref_label_path
@@ -67,7 +86,7 @@ class scSHARP:
         else:
             self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
             all_labels = all_labels.head(self.ncells)
-        self.X, self.keep_cells, self.keep_genes,self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
+        self.X, self.keep_cells, self.keep_genes, self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
         self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
 
@@ -83,7 +102,26 @@ class scSHARP:
         self.pre_processed = True
     
     def run_prediction(self, training_epochs=150, thresh=0.51, batch_size=40, seed=8):
-        """Trains GCN modle on consensus labels and returns predictions"""
+        """Trains GCN modle on consensus labels and returns predictions
+        
+        Parameters
+        ----------
+        training_epochs: Number of epochs model will be trained on. 
+            For each epoch the model calculates predictions for the entire training dataset, adjusting model weights one or more times.
+        thresh: voting threshold for component tools (default: 0.51)
+        batch_size: number of training examples passed through model before calculating gradients (default: 40)
+        seed: random seed (default: 8)
+
+        Returns
+        -------
+        Tuple of:
+            final_preds: predictions on dataset after final training epoch
+            train_nodes: confident labels used for training
+            test_nodes: confident labels used for evaluation (masked labels)
+            keep_cells: cells used in training process, determined during data preprocessing 
+            conf_scores: model confidence values for each prediction 
+        
+        """
         self.batch_size = batch_size 
         self.prepare_data(thresh)
 
