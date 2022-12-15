@@ -25,24 +25,24 @@ from . import gcn_model
 
 def preprocess(data, normalize=True, scale=False, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
     """
-    Preprocessin raw counts DGE matrix
+    Preprocesses raw counts DGE matrix
 
-    The default is to pass in filtered, but not normalized DGE counts matrix with rows representing cells and columns representing genes
+    The default parameter values assume filtered, but not normalized DGE counts matrix 
+    with rows representing cells and columns representing genes
 
     Parameters
     ----------
-    normalize - row norm and lognorm
-    scale - scale by gene to mean 0 and std 1 
-    targetsum - row norm then multiply by target sum
-    run_pca - Whether or not to run PCA
-    comps - how many components to use for PCA
-    cel_fil - Filter param. Minimum number of cells containing a given gene to be included
-    gene_fil - Filter param. Minimum number of genes containing a given cell to be included
+    normalize: row norm and lognorm
+    scale: scale by gene to mean 0 and std 1 
+    targetsum: row norm then multiply by target sum
+    run_pca: Whether or not to run PCA
+    comps: how many components to use for PCA
+    cel_fil: Filter param. Minimum number of cells containing a given gene to be included
+    gene_fil: Filter param. Minimum number of genes containing a given cell to be included
 
     Returns
     -------
-    new_data nD-array
-
+    preprocessed dataset as an nD-array
     """
 
     adata = ad.AnnData(data, dtype=data.dtype)
@@ -67,7 +67,21 @@ def preprocess(data, normalize=True, scale=False, targetsum=1e4, run_pca=True, c
     return new_data, row_filter, col_filter, pca
 
 def mask_labels(labels, masking_pct):
-    """method for masking labels"""
+    """masks labels for training
+
+    Randomly masks a specified portion of the labels, substituting their value for -1
+
+    Parameters
+    ----------
+    labels: list of labels
+    masking_pct: float value for proportion of masked rows
+
+    Returns
+    -------
+    Tuple of:
+        labels: original list of labels 
+        masked_labels: copy of original labels, with masking applied
+    """
     random.seed(8)
     subset = random.sample(range(len(labels)), math.floor((len(labels)*masking_pct)))
     masked_labels = np.copy(labels)
@@ -76,7 +90,14 @@ def mask_labels(labels, masking_pct):
     return labels, masked_labels  
 
 def read_marker_file(file_path):
-    """parse marker file"""
+    """parses marker file
+    
+    Returns
+    -------
+    Tuple of:
+        markers: list of marker genes 
+        marker_names: list of string gene names
+    """
 
     marker_df = pd.read_csv(file_path, header=None, index_col=0)
     markers = np.array(marker_df).tolist()
