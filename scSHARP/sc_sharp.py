@@ -52,7 +52,7 @@ class scSHARP:
             print("Something went wrong with running the R tools. ")
             
         
-    def prepare_data(self, thresh):
+    def prepare_data(self, thresh, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
         if os.path.exists(self.preds_path):
             all_labels = pd.read_csv(self.preds_path, index_col=0)
             if all_labels.shape[1] != len(self.tools): 
@@ -67,7 +67,7 @@ class scSHARP:
         else:
             self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
             all_labels = all_labels.head(self.ncells)
-        self.X, self.keep_cells, self.keep_genes,self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500)
+        self.X, self.keep_cells, self.keep_genes,self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
         self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
 
