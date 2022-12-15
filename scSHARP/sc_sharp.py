@@ -15,7 +15,7 @@ import seaborn as sns
 from sklearn import preprocessing
 
 class scSHARP:
-    """Class that runs predictions"""
+    """Class for prediction, analysis, and visualization of cell type based on DGE matrix"""
 
     def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all"):
         self.data_path = data_path

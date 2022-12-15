@@ -24,17 +24,25 @@ from . import gcn_model
 """General functions and definitions"""
 
 def preprocess(data, normalize=True, scale=False, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
-    """method for preprocessing raw counts matrix
+    """
+    Preprocessin raw counts DGE matrix
 
-    The default is to pass in filtered but not normalized 
+    The default is to pass in filtered, but not normalized DGE counts matrix with rows representing cells and columns representing genes
 
+    Parameters
+    ----------
     normalize - row norm and lognorm
     scale - scale by gene to mean 0 and std 1 
     targetsum - row norm then multiply by target sum
-    run_pca - 
-    comps - how many pca components to use for pca
-    cel_fil - minimum number of cells for filtering
-    gene_fil - minimum number of genes for filtering
+    run_pca - Whether or not to run PCA
+    comps - how many components to use for PCA
+    cel_fil - Filter param. Minimum number of cells containing a given gene to be included
+    gene_fil - Filter param. Minimum number of genes containing a given cell to be included
+
+    Returns
+    -------
+    new_data nD-array
+
     """
 
     adata = ad.AnnData(data, dtype=data.dtype)
