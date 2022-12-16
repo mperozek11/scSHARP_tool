@@ -8,8 +8,13 @@ def interpret_model(model, X, predictions, genes, batch_size, device, batches=No
 
     Parameters
     ----------
-    
-    
+    model:
+    X:
+    predictions: 
+    genes: gene names for output dataframe labels
+    batch_size: size of batch for deeplift interpretation
+    device: torch device for running deeplift computations
+    batches: Number of batches to run dataset on deeplift. If None, run deeplift on entire dataset (default: None)
     """
     dataset  = torch.utils.data.TensorDataset(torch.FloatTensor(X), predictions.cpu())
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False)
@@ -24,7 +29,7 @@ def interpret_model(model, X, predictions, genes, batch_size, device, batches=No
     #attributions = np.zeros((X.shape[0], X.shape[1]))
     temp_atts = None
     counter = 0
-    for data,preds in dataloader:
+    for data, preds in dataloader:
         baseline = torch.FloatTensor(np.zeros(data.shape))
         temp = dl.attribute(data.to(device), baseline.to(device), target=preds.to(device), return_convergence_delta=True)[0].cpu().detach()
         #temp = dl.attribute(data.to(device), target=preds.to(device)).cpu().detach()

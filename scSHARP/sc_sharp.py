@@ -150,7 +150,19 @@ class scSHARP:
         return utilities.knn_consensus_batch(self.X, self.confident_labels, k)
 
     def run_interpretation(self):
-        """Runs model gradient based interpretation"""
+        """Runs gradient-based model interpretation
+
+        Note
+        ----
+        Interpretation requires a trained model. Model is trained by scSHARP.run_prediction()
+
+        Returns
+        -------
+        int_df: The interpretation dataframe with rows corresponding with genes and columns corresponding to cell types.
+            Values indicate the model's gradient of cell type with respect to the corresponding input gene
+        """
+        if not self.model_trained:
+            raise ModelNotTrainedException('Trained model required for model interpretation. See scSHARP.run_prediction() to train')
         X,_,_,_ = utilities.preprocess(np.array(self.counts), scale=False, run_pca=False)
         pca = PCA(n_components=500, random_state=8)
         pca.fit(X)
@@ -205,3 +217,8 @@ class scSHARP:
 
     def __str__(self):
         return f'scSHARP object: Neighbors: {self.neighbors} Config path: {self.config} Num cells: {self.ncells}'
+
+
+class ModelNotTrainedException(Exception):
+    """Raised when a model has not yet been trained but is needed in computation"""
+    pass
