@@ -93,6 +93,8 @@ class scSHARP:
             return False
         
     def prepare_data(self, thresh, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
+        """Prepares dataset for training and prediction"""
+        
         if os.path.exists(self.preds_path):
             self.all_labels = pd.read_csv(self.preds_path, index_col=0)
             if self.all_labels.shape[1] != len(self.tools): 
@@ -165,7 +167,6 @@ class scSHARP:
         if not self.pre_processed:
             self.prepare_data()
 
-        
         return utilities.knn_consensus_batch(self.X, self.confident_labels, k)
 
     def run_interpretation(self):
@@ -198,6 +199,18 @@ class scSHARP:
         return int_df
 
     def heat_map(self, att_df, out_dir=None, n=5):
+        """Displays heat map based on model interpretation
+        
+        Parameters
+        ----------
+        att_df: attribute dataframe generated from scSHARP.run_interpretation()
+        out_dir: optional output directory to save heatmap as pdf. (default: None)
+        n: number of most expressed genes per cell type to display
+
+        Returns
+        -------
+        ax: matplotlib ax object for heatmap
+        """
         att_df = att_df.abs()
         scale_int_df = pd.DataFrame(preprocessing.scale(att_df, with_mean=False))
         scale_int_df.columns = att_df.columns
