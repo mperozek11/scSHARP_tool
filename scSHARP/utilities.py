@@ -32,13 +32,20 @@ def preprocess(data, normalize=True, scale=False, targetsum=1e4, run_pca=True, c
 
     Parameters
     ----------
-    normalize: row norm and lognorm
-    scale: scale by gene to mean 0 and std 1 
-    targetsum: row norm then multiply by target sum
-    run_pca: Whether or not to run PCA
-    comps: how many components to use for PCA
-    cel_fil: Filter param. Minimum number of cells containing a given gene to be included
-    gene_fil: Filter param. Minimum number of genes containing a given cell to be included
+    normalize: bool
+        row norm and lognorm
+    scale: bool
+        scale by gene to mean 0 and std 1 
+    targetsum: float
+        row norm then multiply by target sum
+    run_pca: bool
+        Whether or not to run PCA
+    comps: int
+        how many components to use for PCA
+    cel_fil: int
+        Filter param. Minimum number of cells containing a given gene to be included
+    gene_fil: int
+        Filter param. Minimum number of genes containing a given cell to be included
 
     Returns
     -------
