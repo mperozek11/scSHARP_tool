@@ -4,7 +4,7 @@ from distutils.core import setup
 if __name__== '__main__':
     setup(include_package_data=True,
           description='scSHARP tool for single cell consensus classification',
-          long_description="""Team Software Project""",
+          long_description="""This software propagates consensus labels from state-of-the-art cell type labeling tools with a Graph Convolutional Network.""",
           url='https://github.com/mperozek11/scSHARP_tool',
           version='0.1.4',
           packages=find_namespace_packages(),

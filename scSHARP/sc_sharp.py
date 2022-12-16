@@ -53,49 +53,68 @@ class scSHARP:
         self.counts = None
         self.keep_cells = None
         self.confident_labels = None
+        self.all_labels = None
+
+        _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
     def run_tools(self, out_path, ref_path, ref_label_path):
-        """Method for running component tools
-        
-        Runs component tools from R script, saving output and pointing scSHARP data_path to output csv
         """
+        Uses subprocess to run component tools in R.
+
+        Parameters
+        ----------
+        out_path : str
+            Output path
+        ref_path : str
+            Path to reference dge
+        ref_label_path : str
+            Path to labels for reference data set
+
+        Returns
+        -------
+        bool
+            True if successful, false if not
+        """
+
         try:
-            run_script = "Rscript ./rdriver.r"
-            bash = run_script + " " + self.data_path + " " + out_path + " " + self.marker_path + " " + ref_path + " " + ref_label_path
-            subprocess.call(bash, shell=True)
+            package_path = os.path.dirname(os.path.realpath(__file__))
+            run_script = "Rscript " + os.path.join((package_path), "rdriver.r")
+            print(run_script)
+            command = run_script + " " + self.data_path + " " + out_path + " " + str(self.marker_path) + " " + ref_path + " " + ref_label_path + " " + ",".join(self.tools)
+
+            subprocess.call(command, shell=True)
             
             self.preds_path = out_path
             
+            return True
             # R output file read
         except:
             print("Something went wrong with running the R tools. ")
-            
+            return False
         
     def prepare_data(self, thresh, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
         if os.path.exists(self.preds_path):
-            all_labels = pd.read_csv(self.preds_path, index_col=0)
-            if all_labels.shape[1] != len(self.tools): 
-                all_labels = all_labels[self.tools]
+            self.all_labels = pd.read_csv(self.preds_path, index_col=0)
+            if self.all_labels.shape[1] != len(self.tools): 
+                self.all_labels = self.all_labels[self.tools]
                 
         else:
-            raise Exception("Prediction Dataframe not Found at " + self.data_path) # TODO should this be self.preds_path?
+            raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
 
         # read in dataset
         if self.ncells == "all":
             self.counts = pd.read_csv(self.data_path, index_col=0)
         else:
             self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
-            all_labels = all_labels.head(self.ncells)
-        self.X, self.keep_cells, self.keep_genes, self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
+            self.all_labels = self.all_labels.head(self.ncells)
+        self.X, self.keep_cells, self.keep_genes,self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
         self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
-
-        _,self.marker_names = utilities.read_marker_file(self.marker_path)
 
         self.cell_names = self.marker_names.copy()
         self.cell_names.sort()
 
-        all_labels_factored = utilities.factorize_df(all_labels, self.marker_names)
+        all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
         encoded_labels = utilities.encode_predictions(all_labels_factored)
 
         self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = thresh)
@@ -214,6 +233,33 @@ class scSHARP:
         """Load model as serialized object at specified path"""
 
         self.model = torch.load(file_path)
+
+    def get_component_preds(self, factorized=False):
+        """Returns component predictions if available"""
+
+        if self.all_labels is not pd.DataFrame:
+            if os.path.exists(self.preds_path):
+                self.all_labels = pd.read_csv(self.preds_path, index_col=0)
+                if self.all_labels.shape[1] != len(self.tools): 
+                    self.all_labels = self.all_labels[self.tools]
+                    
+            else:
+                raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
+        
+        if factorized:
+            all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
+            return all_labels_factored
+
+        return self.all_labels
+    
+    def component_correlation(self):
+        """Returns correlation values and heatmap between tool columns"""
+        preds = self.get_component_preds(factorized=True)
+        corr_mat = np.corrcoef(np.array(preds), rowvar=False)
+        corr_mat_df = pd.DataFrame(corr_mat, columns=preds.columns, index=preds.columns)
+        ax = sns.heatmap(corr_mat_df)
+        
+        return corr_mat_df, ax
 
     def __str__(self):
         return f'scSHARP object: Neighbors: {self.neighbors} Config path: {self.config} Num cells: {self.ncells}'
