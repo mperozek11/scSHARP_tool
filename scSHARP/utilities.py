@@ -65,13 +65,13 @@ def preprocess(data, normalize=True, scale=False, targetsum=1e4, run_pca=True, c
     
     if scale:
         new_data = sc.pp.scale(new_data)
-    
+    non_pca_data = new_data.copy()
     pca = None
     if run_pca:
         pca = PCA(n_components=comps, random_state=8)
         new_data = pca.fit_transform(new_data)
 
-    return new_data, row_filter, col_filter, pca
+    return new_data, row_filter, col_filter, pca, non_pca_data
 
 def mask_labels(labels, masking_pct):
     """masks labels for training

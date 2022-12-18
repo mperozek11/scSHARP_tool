@@ -13,6 +13,8 @@ import subprocess
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn import preprocessing
+import scanpy as sc
+import anndata as ad
 
 class scSHARP:
     """Class for prediction, analysis, and visualization of cell type based on DGE matrix
@@ -54,6 +56,7 @@ class scSHARP:
         self.keep_cells = None
         self.confident_labels = None
         self.all_labels = None
+        self.non_pca_data = None
 
         _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
@@ -109,7 +112,7 @@ class scSHARP:
         else:
             self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
             self.all_labels = self.all_labels.head(self.ncells)
-        self.X, self.keep_cells, self.keep_genes,self.pca_obj = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
+        self.X, self.keep_cells, self.keep_genes,self.pca_obj, self.non_pca_data = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
         self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
 
@@ -181,9 +184,12 @@ class scSHARP:
         int_df: The interpretation dataframe with rows corresponding with genes and columns corresponding to cell types.
             Values indicate the model's gradient of cell type with respect to the corresponding input gene
         """
-        if not self.model_trained:
-            raise ModelNotTrainedException('Trained model required for model interpretation. See scSHARP.run_prediction() to train')
-        X,_,_,_ = utilities.preprocess(np.array(self.counts), scale=False, run_pca=False)
+        #need to add this as an attribute
+        #if not self.model_trained:
+        #    raise ModelNotTrainedException('Trained model required for model interpretation. See scSHARP.run_prediction() to train')
+        
+        X = self.non_pca_data
+        
         pca = PCA(n_components=500, random_state=8)
         pca.fit(X)
         pca_mod = PCAModel(pca.components_, pca.mean_)
@@ -276,6 +282,31 @@ class scSHARP:
 
     def __str__(self):
         return f'scSHARP object: Neighbors: {self.neighbors} Config path: {self.config} Num cells: {self.ncells}'
+
+
+    def expression_plots(self, n=5, genes=None):
+        """
+        Generates violoin plots of gene expression.
+
+        Parameters
+        ----------
+        n : int
+            number of highly attributed genes to show
+        genes : list
+            list of genes to show
+
+        Returns
+        -------
+        Plot
+        """
+        if self.final_preds == None: raise ModelNotTrainedException()
+        
+        temp_X = pd.DataFrame(self.non_pca_data, index=self.counts.index.to_numpy()[self.keep_cells], columns=self.counts.columns.to_numpy()[self.keep_genes])
+        adata = ad.AnnData(temp_X)
+        adata.obs['Cell Type Prediction'] = pd.Series(self.final_preds, dtype="category")
+        plot = sc.pl.violin(adata, keys=genes, groupby='Cell Type Prediction')
+
+        return plot
 
 
 class ModelNotTrainedException(Exception):
