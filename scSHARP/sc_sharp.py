@@ -16,6 +16,7 @@ from sklearn import preprocessing
 import scanpy as sc
 import anndata as ad
 
+
 class scSHARP:
     """Class for prediction, analysis, and visualization of cell type based on DGE matrix
     
@@ -95,7 +96,7 @@ class scSHARP:
             print("Something went wrong with running the R tools. ")
             return False
         
-    def prepare_data(self, thresh, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
+    def prepare_data(self, thresh=0.51, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
         """Prepares dataset for training and prediction"""
         
         if os.path.exists(self.preds_path):
@@ -307,6 +308,21 @@ class scSHARP:
         plot = sc.pl.violin(adata, keys=genes, groupby='Cell Type Prediction')
 
         return plot
+
+    def model_eval(self, config, batch_size, neighbors, dropout, random_inits, training_epochs=150):
+        """Evaluates a model for a single hyperparameter configuration"""
+        self.prepare_data()
+
+        dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(self.confident_labels))
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+        test_dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(unmasked_confident))
+        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+        for i in range(random_inits):
+            model = GCNModel(config, neighbors, targets, seed=i, dropout=dropout)
+            model.train(dataloader, training_epochs, verbose=False)
+            metrics = model.validation_metrics(test_dataloader, validation_nodes, test_nodes)
 
 
 class ModelNotTrainedException(Exception):
