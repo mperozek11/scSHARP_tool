@@ -57,6 +57,8 @@ class scSHARP:
         self.confident_labels = None
         self.all_labels = None
         self.non_pca_data = None
+        self.factor_keys = None
+        self.final_int_df = None
 
         _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
@@ -119,7 +121,7 @@ class scSHARP:
         self.cell_names = self.marker_names.copy()
         self.cell_names.sort()
 
-        all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
+        all_labels_factored, self.factor_keys = utilities.factorize_df(self.all_labels, self.marker_names)
         encoded_labels = utilities.encode_predictions(all_labels_factored)
 
         self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = thresh)
@@ -182,7 +184,7 @@ class scSHARP:
         Returns
         -------
         int_df: The interpretation dataframe with rows corresponding with genes and columns corresponding to cell types.
-            Values indicate the model's gradient of cell type with respect to the corresponding input gene
+            Values indicate the model's gradient of cell type with respect to the corresponding input gene after absolute value and scaling by cell type
         """
         #need to add this as an attribute
         #if not self.model_trained:
@@ -201,10 +203,16 @@ class scSHARP:
         #real_y = torch.tensor(real_y)
         int_df = interpret.interpret_model(seq, X, self.final_preds, self.genes, self.batch_size, self.model.device)
         int_df.columns = self.cell_names
-        
-        return int_df
+        att_df = int_df.abs()
+        scale_int_df = pd.DataFrame(preprocessing.scale(att_df, with_mean=False))
+        scale_int_df.columns = att_df.columns
+        scale_int_df.index = att_df.index
 
-    def heat_map(self, att_df, out_dir=None, n=5):
+        self.final_int_df = scale_int_df
+
+        return self.final_int_df
+
+    def heat_map(self, out_dir=None, n=5):
         """Displays heat map based on model interpretation
         
         Parameters
@@ -217,13 +225,10 @@ class scSHARP:
         -------
         ax: matplotlib ax object for heatmap
         """
-        att_df = att_df.abs()
-        scale_int_df = pd.DataFrame(preprocessing.scale(att_df, with_mean=False))
-        scale_int_df.columns = att_df.columns
-        scale_int_df.index = att_df.index
-        markers = self.__get_most_expressed(scale_int_df, n)
+    
+        markers = self.__get_most_expressed(self.final_int_df, n)
 
-        ax = sns.heatmap(scale_int_df.loc[markers,:])
+        ax = sns.heatmap(self.final_int_df.loc[markers,:])
         ax.set(xlabel="Cell Type")
         plt.plot()
         plt.show()
@@ -266,7 +271,7 @@ class scSHARP:
                 raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
         
         if factorized:
-            all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
+            all_labels_factored,_ = utilities.factorize_df(self.all_labels, self.marker_names)
             return all_labels_factored
 
         return self.all_labels
@@ -301,14 +306,34 @@ class scSHARP:
         """
         if self.final_preds == None: raise ModelNotTrainedException()
         
+        if genes == None:
+            if self.final_int_df is None: raise InterpretationNotRan("Please run model interpretation first.")
+            genes = self.__get_most_expressed(self.final_int_df, n)
         temp_X = pd.DataFrame(self.non_pca_data, index=self.counts.index.to_numpy()[self.keep_cells], columns=self.counts.columns.to_numpy()[self.keep_genes])
         adata = ad.AnnData(temp_X)
-        adata.obs['Cell Type Prediction'] = pd.Series(self.final_preds, dtype="category")
+        adata.obs['Cell Type Prediction'] = self.unfactorize_preds()
         plot = sc.pl.violin(adata, keys=genes, groupby='Cell Type Prediction')
-
+        
         return plot
 
+    def unfactorize_preds(self):
+        """function that maps preds back to cell types"""
+
+        if self.final_preds == None: raise ModelNotTrainedException()
+
+        new_final_preds = pd.Series(self.final_preds)
+
+        new_final_preds[new_final_preds == -1] = "Unknown"
+
+        for i, key in enumerate(self.factor_keys):
+            new_final_preds[new_final_preds == i] = key
+        
+        return np.array(new_final_preds).astype('str')
 
 class ModelNotTrainedException(Exception):
     """Raised when a model has not yet been trained but is needed in computation"""
+    pass
+
+class InterpretationNotRan(Exception):
+    """Raised when model interpretation has not been ran but is needed in computation"""
     pass
