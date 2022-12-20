@@ -24,7 +24,7 @@ class scSHARP:
     as well as prediction and analysis using scSHARP model.
     """
 
-    def __init__(self, data_path, tool_list, marker_path, tool_preds = None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None):
+    def __init__(self, data_path, tool_list, marker_path, tool_preds = None, neighbors=2, config="configs/2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
         """Class initialization for scSHARP. Data path, tools list and marker path are necessary.
         Attributes:
         -----------
@@ -48,6 +48,7 @@ class scSHARP:
         self.ncells = ncells
         self.anndata_layer = anndata_layer
         self.pre_processed = False
+        self.anndata_use_raw = anndata_use_raw
 
         self.cell_names = None
         self.model = None
@@ -118,9 +119,15 @@ class scSHARP:
         if self.data_path[-5:] == ".h5ad":
             temp_adata = sc.read_h5ad(self.data_path)
             if self.anndata_layer is None:
-                self.counts = temp_adata.X
+                if self.anndata_use_raw:
+                    self.counts = temp_adata.raw.X.toarray()
+                    self.genes = temp_adata.raw.var_names
+                else: 
+                    self.counts = temp_adata.X.toarray()
+                    self.genes = temp_adata.var_names
             else:
-                self.counts = temp_adata.layers.X
+                self.counts = temp_adata.layers.X.toarray()
+                self.genes = temp_adata.layers.var_names
         else:
             if self.ncells == "all":
                 self.counts = pd.read_csv(self.data_path, index_col=0)
@@ -129,7 +136,7 @@ class scSHARP:
                 self.all_labels = self.all_labels.head(self.ncells)
 
         self.X, self.keep_cells, self.keep_genes,self.pca_obj, self.non_pca_data = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
-        self.genes = self.counts.columns.to_numpy()[self.keep_genes]
+        if self.genes is None: self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
 
         self.cell_names = self.marker_names.copy()
@@ -323,7 +330,7 @@ class scSHARP:
         if genes == None:
             if self.final_int_df is None: raise InterpretationNotRan("Please run model interpretation first.")
             genes = self.__get_most_expressed(self.final_int_df, n)
-        temp_X = pd.DataFrame(self.non_pca_data, index=self.counts.index.to_numpy()[self.keep_cells], columns=self.counts.columns.to_numpy()[self.keep_genes])
+        temp_X = pd.DataFrame(self.non_pca_data, columns=self.genes)
         adata = ad.AnnData(temp_X)
         adata.obs['Cell Type Prediction'] = self.unfactorize_preds()
         plot = sc.pl.violin(adata, keys=genes, groupby='Cell Type Prediction')
