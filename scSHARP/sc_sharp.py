@@ -1,3 +1,4 @@
+import random
 from . import utilities
 from . import interpret
 #import scSHARP.utilities as utilities
@@ -40,11 +41,12 @@ class scSHARP:
         self.preds_path = tool_preds
         self.tools = tool_list
         self.marker_path = marker_path
+
         self.neighbors = neighbors
         self.config = config
         self.ncells = ncells
-        self.pre_processed = False
 
+        self.pre_processed = False
         self.cell_names = None
         self.model = None
         self.final_preds = None
@@ -58,6 +60,7 @@ class scSHARP:
         self.confident_labels = None
         self.all_labels = None
         self.non_pca_data = None
+        self.random_inits = None
 
         _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
@@ -311,18 +314,67 @@ class scSHARP:
 
     def model_eval(self, config, batch_size, neighbors, dropout, random_inits, training_epochs=150):
         """Evaluates a model for a single hyperparameter configuration"""
+        # self.__prepare_data_grid_search()
         self.prepare_data()
 
         dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(self.confident_labels))
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-        test_dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(unmasked_confident))
+        test_dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(self.unmasked_confident))
         test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
         for i in range(random_inits):
-            model = GCNModel(config, neighbors, targets, seed=i, dropout=dropout)
+            model = GCNModel(config, neighbors, self.targets, seed=i, dropout=dropout)
             model.train(dataloader, training_epochs, verbose=False)
-            metrics = model.validation_metrics(test_dataloader, validation_nodes, test_nodes)
+            metrics = model.validation_metrics(test_dataloader, self.validation_nodes, self.test_nodes)
+
+    # def __prepare_data_grid_search(self):
+    #     data_folder = self.data_path
+    #     tools = ["sctype","scsorter","scina", "singler", "scpred"]
+    #     # tools = ["sctype", "scsorter", "scina"]
+    #     votes = 0.51
+    #     # targets = 3
+    #     # ref_path = data_folder + "ref_counts.csv"
+    #     # ref_label_path = data_folder + "ref_labels.csv"
+    #     # marker_path = self.marker_path
+
+
+    #     if os.path.exists(data_folder + "preds.csv"):
+    #         all_labels = pd.read_csv(data_folder + "preds.csv", index_col=0)
+    #         if all_labels.shape[1] != len(tools): raise Exception("wrong amount of tools in file")
+    #     else:
+    #         all_labels = utilities.label_counts(self.data_path, tools, self.ref_path, self.ref_label_path, self.marker_path)
+
+    #     print(f'all_labels: {all_labels.shape}')
+    #     self.targets = all_labels.shape
+
+    #     # read in dataset
+    #     self.X = pd.read_csv(self.data_path, index_col=0)
+    #     self.X, keep_cells,_,_ = utilities.preprocess(np.array(self.X), scale=False)
+
+    #     #all_labels = all_labels.loc[keep_cells,:]
+
+    #     _,marker_names = utilities.read_marker_file(self.marker_path)
+
+    #     all_labels_factored = utilities.factorize_df(all_labels, marker_names)
+    #     encoded_labels = utilities.encode_predictions(all_labels_factored)
+    #     """
+    #     meta_path = data_folder + "query_meta.csv"
+    #     metadata = pd.read_csv(meta_path, index_col=0)
+    #     real_y = pd.factorize(metadata['Group'], sort=True)[0]
+    #     real_y = real_y[keep_cells]
+    #     """
+    #     self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = votes)
+    #     train_nodes = np.where(self.confident_labels != -1)[0]
+    #     self.test_nodes = np.where(self.confident_labels == -1)[0]
+
+    #     #create validation set
+    #     random.seed(8)
+    #     np.random.seed(8)
+    #     #validation_nodes = random.sample(train_nodes, int(len(train_nodes)*.2))
+    #     self.validation_nodes = np.random.choice(train_nodes, size=int(len(train_nodes)*.2), replace=False)
+    #     self.unmasked_confident = np.copy(self.confident_labels)
+    #     self.confident_labels[self.validation_nodes] = -1
 
 
 class ModelNotTrainedException(Exception):

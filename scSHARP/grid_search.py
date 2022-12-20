@@ -6,12 +6,16 @@ from pkg_resources import resource_filename
 
 
 class GridSearch:
-
+    """Class for running a grid search on scSHARP consensus cell prediction model"""
     def __init__(self, scSHARP):
         self.sharp = scSHARP
     
     
-    def model_grid_search(self, n_workers, random_inits):
+    def model_grid_search(self, n_workers, random_inits,
+        configs='all',
+        batch_size=[20, 35, 50, 65, 80, 95],
+        neighbors=[10, 50, 100, 250],
+        dropouts=[0.0]):
         """Runs grid search on model to find optimal hyperparameters for dataset
         
         Parameters
@@ -27,10 +31,13 @@ class GridSearch:
             best model configutations sorte by evaluation accuracy
 
         """
-        self.random_inits = random_inits
+        self.sharp.random_inits = random_inits
         # jobs = []
-
-        chunks = self.__get_config_chunks(n_workers)
+        self.sharp.random_inits = random_inits
+        if configs == 'all':
+            configs = os.listdir(resource_filename(__name__, 'configs'))
+        
+        chunks = self.__get_config_chunks(n_workers, configs, batch_size, neighbors, dropouts)
         pool = multiprocessing.Pool()
         results = pool.map(single_process_search, chunks)
         pool.close()
@@ -38,7 +45,7 @@ class GridSearch:
         print(results)
         # Now combine the results
         sorted_results = reversed(sorted(results, key=lambda x: x[0]))
-        print(next(sorted_results))
+        # print(next(sorted_results))
         return sorted_results
 
     def __get_config_chunks(
@@ -60,8 +67,12 @@ def single_process_search(chunk):
     
     Must remain outside of GridSearch class because multiprocess pool.map does not allow for pickling of class functions.
     """
-    sharp_ref = chunk[4]
-    sharp = scSHARP(sharp_ref.data_path, sharp_ref.tool_preds, sharp_ref.tool_list, sharp_ref.marker_path)
+    
+    if len(chunk) == 0:
+        return None, None
+    
+    sharp_ref = chunk[0][4]
+    sharp = scSHARP(sharp_ref.data_path, sharp_ref.preds_path, sharp_ref.tools, sharp_ref.marker_path)
 
     best_acc = 0
     best_config = None
