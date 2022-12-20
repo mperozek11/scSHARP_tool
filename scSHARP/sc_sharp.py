@@ -22,20 +22,23 @@ class scSHARP:
     
     scSHARP object manages I/O directories, running of component tools, 
     as well as prediction and analysis using scSHARP model.
-    
-    Attributes:
-    -----------
-        data_path: path to DGE matrix csv
-        preds_path: path to component tool output file csv format
-        tools: list of component tool string names
-        marker_path: path to marker gene txt file
-        neighbors: number of neighbors used for tool consensus default value is 2
-        config: config file for the 
-        ncells: number of cells from dataset to use for model prediction
-        pre_processed: boolean. True when dataset has been preprocessed
     """
 
-    def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all"):
+    def __init__(self, data_path, tool_list, marker_path, tool_preds = None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None):
+        """Class initialization for scSHARP. Data path, tools list and marker path are necessary.
+        Attributes:
+        -----------
+            data_path: path to DGE matrix csv or h5ad file (if providing h5ad file, please provide layer name for raw counts, otherwise default will be used)
+            preds_path: path to component tool output file csv format
+            tools: list of component tool string names
+            marker_path: path to marker gene txt file
+            neighbors: number of neighbors used for tool consensus default value is 2
+            config: config file for the 
+            ncells: number of cells from dataset to use for model prediction
+            pre_processed: boolean. True when dataset has been preprocessed
+            anndata_layer: layer to use for raw counts
+        
+        """
         self.data_path = data_path
         self.preds_path = tool_preds
         self.tools = tool_list
@@ -43,6 +46,7 @@ class scSHARP:
         self.neighbors = neighbors
         self.config = config
         self.ncells = ncells
+        self.anndata_layer = anndata_layer
         self.pre_processed = False
 
         self.cell_names = None
@@ -110,11 +114,20 @@ class scSHARP:
             raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
 
         # read in dataset
-        if self.ncells == "all":
-            self.counts = pd.read_csv(self.data_path, index_col=0)
+        # if .h5ad format
+        if self.data_path[-5:] == ".h5ad":
+            temp_adata = sc.read_h5ad(self.data_path)
+            if self.anndata_layer is None:
+                self.counts = temp_adata.X
+            else:
+                self.counts = temp_adata.layers.X
         else:
-            self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
-            self.all_labels = self.all_labels.head(self.ncells)
+            if self.ncells == "all":
+                self.counts = pd.read_csv(self.data_path, index_col=0)
+            else:
+                self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
+                self.all_labels = self.all_labels.head(self.ncells)
+
         self.X, self.keep_cells, self.keep_genes,self.pca_obj, self.non_pca_data = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
         self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
