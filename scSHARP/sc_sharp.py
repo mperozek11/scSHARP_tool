@@ -36,7 +36,7 @@ class scSHARP:
         pre_processed: boolean. True when dataset has been preprocessed
     """
 
-    def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
+    def __init__(self, data_path, tool_list, marker_path, tool_preds=None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
         self.data_path = data_path
         self.preds_path = tool_preds
         self.tools = tool_list
