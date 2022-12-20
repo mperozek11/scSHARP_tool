@@ -23,20 +23,23 @@ class scSHARP:
     
     scSHARP object manages I/O directories, running of component tools, 
     as well as prediction and analysis using scSHARP model.
-    
-    Attributes:
-    -----------
-        data_path: path to DGE matrix csv
-        preds_path: path to component tool output file csv format
-        tools: list of component tool string names
-        marker_path: path to marker gene txt file
-        neighbors: number of neighbors used for tool consensus default value is 2
-        config: config file for the 
-        ncells: number of cells from dataset to use for model prediction
-        pre_processed: boolean. True when dataset has been preprocessed
     """
 
-    def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all"):
+    def __init__(self, data_path, tool_list, marker_path, tool_preds = None, neighbors=2, config="configs/2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
+        """Class initialization for scSHARP. Data path, tools list and marker path are necessary.
+        Attributes:
+        -----------
+            data_path: path to DGE matrix csv or h5ad file (if providing h5ad file, please provide layer name for raw counts, otherwise default will be used)
+            preds_path: path to component tool output file csv format
+            tools: list of component tool string names
+            marker_path: path to marker gene txt file
+            neighbors: number of neighbors used for tool consensus default value is 2
+            config: config file for the 
+            ncells: number of cells from dataset to use for model prediction
+            pre_processed: boolean. True when dataset has been preprocessed
+            anndata_layer: layer to use for raw counts
+        
+        """
         self.data_path = data_path
         self.preds_path = tool_preds
         self.tools = tool_list
@@ -45,6 +48,12 @@ class scSHARP:
         self.neighbors = neighbors
         self.config = config
         self.ncells = ncells
+<<<<<<< HEAD
+=======
+        self.anndata_layer = anndata_layer
+        self.pre_processed = False
+        self.anndata_use_raw = anndata_use_raw
+>>>>>>> 623e46eb8062233bb53df3e1acfaa096ff6dde5f
 
         self.pre_processed = False
         self.cell_names = None
@@ -60,7 +69,12 @@ class scSHARP:
         self.confident_labels = None
         self.all_labels = None
         self.non_pca_data = None
+<<<<<<< HEAD
         self.random_inits = None
+=======
+        self.factor_keys = None
+        self.final_int_df = None
+>>>>>>> 623e46eb8062233bb53df3e1acfaa096ff6dde5f
 
         _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
@@ -111,19 +125,34 @@ class scSHARP:
             raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
 
         # read in dataset
-        if self.ncells == "all":
-            self.counts = pd.read_csv(self.data_path, index_col=0)
+        # if .h5ad format
+        if self.data_path[-5:] == ".h5ad":
+            temp_adata = sc.read_h5ad(self.data_path)
+            if self.anndata_layer is None:
+                if self.anndata_use_raw:
+                    self.counts = temp_adata.raw.X.toarray()
+                    self.genes = temp_adata.raw.var_names
+                else: 
+                    self.counts = temp_adata.X.toarray()
+                    self.genes = temp_adata.var_names
+            else:
+                self.counts = temp_adata.layers.X.toarray()
+                self.genes = temp_adata.layers.var_names
         else:
-            self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
-            self.all_labels = self.all_labels.head(self.ncells)
+            if self.ncells == "all":
+                self.counts = pd.read_csv(self.data_path, index_col=0)
+            else:
+                self.counts = pd.read_csv(self.data_path, index_col=0, nrows=self.ncells)
+                self.all_labels = self.all_labels.head(self.ncells)
+
         self.X, self.keep_cells, self.keep_genes,self.pca_obj, self.non_pca_data = utilities.preprocess(np.array(self.counts), scale=False, comps=500) 
-        self.genes = self.counts.columns.to_numpy()[self.keep_genes]
+        if self.genes is None: self.genes = self.counts.columns.to_numpy()[self.keep_genes]
         #all_labels = all_labels.loc[self.keep_cells,:]
 
         self.cell_names = self.marker_names.copy()
         self.cell_names.sort()
 
-        all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
+        all_labels_factored, self.factor_keys = utilities.factorize_df(self.all_labels, self.marker_names)
         encoded_labels = utilities.encode_predictions(all_labels_factored)
 
         self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = thresh)
@@ -186,7 +215,7 @@ class scSHARP:
         Returns
         -------
         int_df: The interpretation dataframe with rows corresponding with genes and columns corresponding to cell types.
-            Values indicate the model's gradient of cell type with respect to the corresponding input gene
+            Values indicate the model's gradient of cell type with respect to the corresponding input gene after absolute value and scaling by cell type
         """
         #need to add this as an attribute
         #if not self.model_trained:
@@ -205,10 +234,16 @@ class scSHARP:
         #real_y = torch.tensor(real_y)
         int_df = interpret.interpret_model(seq, X, self.final_preds, self.genes, self.batch_size, self.model.device)
         int_df.columns = self.cell_names
-        
-        return int_df
+        att_df = int_df.abs()
+        scale_int_df = pd.DataFrame(preprocessing.scale(att_df, with_mean=False))
+        scale_int_df.columns = att_df.columns
+        scale_int_df.index = att_df.index
 
-    def heat_map(self, att_df, out_dir=None, n=5):
+        self.final_int_df = scale_int_df
+
+        return self.final_int_df
+
+    def heat_map(self, out_dir=None, n=5):
         """Displays heat map based on model interpretation
         
         Parameters
@@ -221,13 +256,10 @@ class scSHARP:
         -------
         ax: matplotlib ax object for heatmap
         """
-        att_df = att_df.abs()
-        scale_int_df = pd.DataFrame(preprocessing.scale(att_df, with_mean=False))
-        scale_int_df.columns = att_df.columns
-        scale_int_df.index = att_df.index
-        markers = self.__get_most_expressed(scale_int_df, n)
+    
+        markers = self.__get_most_expressed(self.final_int_df, n)
 
-        ax = sns.heatmap(scale_int_df.loc[markers,:])
+        ax = sns.heatmap(self.final_int_df.loc[markers,:])
         ax.set(xlabel="Cell Type")
         plt.plot()
         plt.show()
@@ -270,7 +302,7 @@ class scSHARP:
                 raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
         
         if factorized:
-            all_labels_factored = utilities.factorize_df(self.all_labels, self.marker_names)
+            all_labels_factored,_ = utilities.factorize_df(self.all_labels, self.marker_names)
             return all_labels_factored
 
         return self.all_labels
@@ -305,13 +337,30 @@ class scSHARP:
         """
         if self.final_preds == None: raise ModelNotTrainedException()
         
-        temp_X = pd.DataFrame(self.non_pca_data, index=self.counts.index.to_numpy()[self.keep_cells], columns=self.counts.columns.to_numpy()[self.keep_genes])
+        if genes == None:
+            if self.final_int_df is None: raise InterpretationNotRan("Please run model interpretation first.")
+            genes = self.__get_most_expressed(self.final_int_df, n)
+        temp_X = pd.DataFrame(self.non_pca_data, columns=self.genes)
         adata = ad.AnnData(temp_X)
-        adata.obs['Cell Type Prediction'] = pd.Series(self.final_preds, dtype="category")
+        adata.obs['Cell Type Prediction'] = self.unfactorize_preds()
         plot = sc.pl.violin(adata, keys=genes, groupby='Cell Type Prediction')
-
+        
         return plot
 
+    def unfactorize_preds(self):
+        """function that maps preds back to cell types"""
+
+        if self.final_preds == None: raise ModelNotTrainedException()
+
+        new_final_preds = pd.Series(self.final_preds)
+
+        new_final_preds[new_final_preds == -1] = "Unknown"
+
+        for i, key in enumerate(self.factor_keys):
+            new_final_preds[new_final_preds == i] = key
+        
+        return np.array(new_final_preds).astype('str')
+        
     def model_eval(self, config, batch_size, neighbors, dropout, random_inits, training_epochs=150):
         """Evaluates a model for a single hyperparameter configuration"""
         # self.__prepare_data_grid_search()
@@ -379,4 +428,8 @@ class scSHARP:
 
 class ModelNotTrainedException(Exception):
     """Raised when a model has not yet been trained but is needed in computation"""
+    pass
+
+class InterpretationNotRan(Exception):
+    """Raised when model interpretation has not been ran but is needed in computation"""
     pass

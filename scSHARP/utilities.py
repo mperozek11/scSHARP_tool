@@ -182,13 +182,14 @@ def factorize_df(df, all_cells):
     df = pd.concat([df,dummy])
     
     temp = df.apply(pd.factorize, axis=0, sort=True)
+    keys = temp.iloc[1,0]
     temp = temp.iloc[0,:]
     indices = list(temp.index)
     d = {key: None for key in indices}
     for i in range(temp.shape[0]):
         d[indices[i]] = temp.iloc[i]
 
-    return pd.DataFrame(d).iloc[:-len(all_cells)]
+    return pd.DataFrame(d).iloc[:-len(all_cells)], keys
 
 def encode_predictions(df):
     """encodes predictions for each cell with 1 for each prediction"""
