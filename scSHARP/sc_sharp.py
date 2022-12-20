@@ -23,23 +23,20 @@ class scSHARP:
     
     scSHARP object manages I/O directories, running of component tools, 
     as well as prediction and analysis using scSHARP model.
+    
+    Attributes:
+    -----------
+        data_path: path to DGE matrix csv
+        preds_path: path to component tool output file csv format
+        tools: list of component tool string names
+        marker_path: path to marker gene txt file
+        neighbors: number of neighbors used for tool consensus default value is 2
+        config: config file for the 
+        ncells: number of cells from dataset to use for model prediction
+        pre_processed: boolean. True when dataset has been preprocessed
     """
 
-    def __init__(self, data_path, tool_list, marker_path, tool_preds = None, neighbors=2, config="configs/2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
-        """Class initialization for scSHARP. Data path, tools list and marker path are necessary.
-        Attributes:
-        -----------
-            data_path: path to DGE matrix csv or h5ad file (if providing h5ad file, please provide layer name for raw counts, otherwise default will be used)
-            preds_path: path to component tool output file csv format
-            tools: list of component tool string names
-            marker_path: path to marker gene txt file
-            neighbors: number of neighbors used for tool consensus default value is 2
-            config: config file for the 
-            ncells: number of cells from dataset to use for model prediction
-            pre_processed: boolean. True when dataset has been preprocessed
-            anndata_layer: layer to use for raw counts
-        
-        """
+    def __init__(self, data_path, tool_preds, tool_list, marker_path, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
         self.data_path = data_path
         self.preds_path = tool_preds
         self.tools = tool_list
@@ -48,14 +45,11 @@ class scSHARP:
         self.neighbors = neighbors
         self.config = config
         self.ncells = ncells
-<<<<<<< HEAD
-=======
+
         self.anndata_layer = anndata_layer
         self.pre_processed = False
         self.anndata_use_raw = anndata_use_raw
->>>>>>> 623e46eb8062233bb53df3e1acfaa096ff6dde5f
 
-        self.pre_processed = False
         self.cell_names = None
         self.model = None
         self.final_preds = None
@@ -69,12 +63,9 @@ class scSHARP:
         self.confident_labels = None
         self.all_labels = None
         self.non_pca_data = None
-<<<<<<< HEAD
         self.random_inits = None
-=======
         self.factor_keys = None
         self.final_int_df = None
->>>>>>> 623e46eb8062233bb53df3e1acfaa096ff6dde5f
 
         _,self.marker_names = utilities.read_marker_file(self.marker_path)
         
@@ -366,6 +357,13 @@ class scSHARP:
         # self.__prepare_data_grid_search()
         self.prepare_data()
 
+        train_nodes = np.where(self.confident_labels != -1)[0]
+        self.test_nodes = np.where(self.confident_labels == -1)[0]
+
+        self.validation_nodes = np.random.choice(train_nodes, size=int(len(train_nodes)*.2), replace=False)
+        self.unmasked_confident = np.copy(self.confident_labels)
+        self.confident_labels[self.validation_nodes] = -1
+
         dataset  = torch.utils.data.TensorDataset(torch.tensor(self.X), torch.tensor(self.confident_labels))
         dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
@@ -377,53 +375,53 @@ class scSHARP:
             model.train(dataloader, training_epochs, verbose=False)
             metrics = model.validation_metrics(test_dataloader, self.validation_nodes, self.test_nodes)
 
-    # def __prepare_data_grid_search(self):
-    #     data_folder = self.data_path
-    #     tools = ["sctype","scsorter","scina", "singler", "scpred"]
-    #     # tools = ["sctype", "scsorter", "scina"]
-    #     votes = 0.51
-    #     # targets = 3
-    #     # ref_path = data_folder + "ref_counts.csv"
-    #     # ref_label_path = data_folder + "ref_labels.csv"
-    #     # marker_path = self.marker_path
+    def __prepare_data_grid_search(self):
+        data_folder = self.data_path
+        tools = ["sctype","scsorter","scina", "singler", "scpred"]
+        # tools = ["sctype", "scsorter", "scina"]
+        votes = 0.51
+        # targets = 3
+        # ref_path = data_folder + "ref_counts.csv"
+        # ref_label_path = data_folder + "ref_labels.csv"
+        # marker_path = self.marker_path
 
 
-    #     if os.path.exists(data_folder + "preds.csv"):
-    #         all_labels = pd.read_csv(data_folder + "preds.csv", index_col=0)
-    #         if all_labels.shape[1] != len(tools): raise Exception("wrong amount of tools in file")
-    #     else:
-    #         all_labels = utilities.label_counts(self.data_path, tools, self.ref_path, self.ref_label_path, self.marker_path)
+        if os.path.exists(data_folder + "preds.csv"):
+            all_labels = pd.read_csv(data_folder + "preds.csv", index_col=0)
+            if all_labels.shape[1] != len(tools): raise Exception("wrong amount of tools in file")
+        else:
+            all_labels = utilities.label_counts(self.data_path, tools, self.ref_path, self.ref_label_path, self.marker_path)
 
-    #     print(f'all_labels: {all_labels.shape}')
-    #     self.targets = all_labels.shape
+        print(f'all_labels: {all_labels.shape}')
+        self.targets = all_labels.shape
 
-    #     # read in dataset
-    #     self.X = pd.read_csv(self.data_path, index_col=0)
-    #     self.X, keep_cells,_,_ = utilities.preprocess(np.array(self.X), scale=False)
+        # read in dataset
+        self.X = pd.read_csv(self.data_path, index_col=0)
+        self.X, keep_cells,_,_ = utilities.preprocess(np.array(self.X), scale=False)
 
-    #     #all_labels = all_labels.loc[keep_cells,:]
+        #all_labels = all_labels.loc[keep_cells,:]
 
-    #     _,marker_names = utilities.read_marker_file(self.marker_path)
+        _,marker_names = utilities.read_marker_file(self.marker_path)
 
-    #     all_labels_factored = utilities.factorize_df(all_labels, marker_names)
-    #     encoded_labels = utilities.encode_predictions(all_labels_factored)
-    #     """
-    #     meta_path = data_folder + "query_meta.csv"
-    #     metadata = pd.read_csv(meta_path, index_col=0)
-    #     real_y = pd.factorize(metadata['Group'], sort=True)[0]
-    #     real_y = real_y[keep_cells]
-    #     """
-    #     self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = votes)
-    #     train_nodes = np.where(self.confident_labels != -1)[0]
-    #     self.test_nodes = np.where(self.confident_labels == -1)[0]
+        all_labels_factored = utilities.factorize_df(all_labels, marker_names)
+        encoded_labels = utilities.encode_predictions(all_labels_factored)
+        """
+        meta_path = data_folder + "query_meta.csv"
+        metadata = pd.read_csv(meta_path, index_col=0)
+        real_y = pd.factorize(metadata['Group'], sort=True)[0]
+        real_y = real_y[keep_cells]
+        """
+        self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = votes)
+        train_nodes = np.where(self.confident_labels != -1)[0]
+        self.test_nodes = np.where(self.confident_labels == -1)[0]
 
-    #     #create validation set
-    #     random.seed(8)
-    #     np.random.seed(8)
-    #     #validation_nodes = random.sample(train_nodes, int(len(train_nodes)*.2))
-    #     self.validation_nodes = np.random.choice(train_nodes, size=int(len(train_nodes)*.2), replace=False)
-    #     self.unmasked_confident = np.copy(self.confident_labels)
-    #     self.confident_labels[self.validation_nodes] = -1
+        #create validation set
+        random.seed(8)
+        np.random.seed(8)
+        #validation_nodes = random.sample(train_nodes, int(len(train_nodes)*.2))
+        self.validation_nodes = np.random.choice(train_nodes, size=int(len(train_nodes)*.2), replace=False)
+        self.unmasked_confident = np.copy(self.confident_labels)
+        self.confident_labels[self.validation_nodes] = -1
 
 
 class ModelNotTrainedException(Exception):
