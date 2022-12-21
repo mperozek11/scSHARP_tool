@@ -109,7 +109,6 @@ class GCNModel(torch.nn.Module):
 
         train_cm = confusion_matrix(real_y[train_nodes], final_pred[train_nodes])
 
-
         test_equality = (real_y[test_nodes] == final_pred[test_nodes])
         test_accuracy = test_equality.type(torch.FloatTensor).mean()
 
