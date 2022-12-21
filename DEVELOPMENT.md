@@ -24,6 +24,12 @@ python3 -m pip install --upgrade twine
 twine upload <path to tarball>
 ```
 
+OR if updating existing pypi package
+
+```
+twine upload --skip-existing <path to tarball>
+```
+
 Enter credentials as follows:
 ```
 username: __token__

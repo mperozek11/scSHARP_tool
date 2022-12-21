@@ -6,7 +6,7 @@ if __name__== '__main__':
           description='scSHARP tool for single cell consensus classification',
           long_description="""This software propagates consensus labels from state-of-the-art cell type labeling tools with a Graph Convolutional Network.""",
           url='https://github.com/mperozek11/scSHARP_tool',
-          version='1.0.0',
+          version='1.0.1',
           packages=find_namespace_packages(),
           zip_safe=False,
           license_files = ('LICENSE.txt',),
@@ -26,6 +26,7 @@ if __name__== '__main__':
                             #'torch_scatter>=2.0.9',
                             #'torch_spline_conv>=1.2.1'],
           package_data={
-                '': ['scSHARP/configs/*']
+                '': ['scSHARP/configs/*'],
+                '': ['*.r', '*.R']
           },
           name='scSHARP')
