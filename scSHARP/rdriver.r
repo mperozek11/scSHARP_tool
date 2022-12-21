@@ -16,5 +16,5 @@ tools <- args[6]
 print(out_path)
 
 
-output <- run_r4scsharp(data_path, out_path, marker_path,
-    ref_path, ref_label_path, tools=tools)
+output <- run_r4scsharp(data_path, marker_path,
+    ref_path, ref_label_path, out_path=out_path, tools=tools)

@@ -2,6 +2,19 @@
 
 First create a pypi account. Instructions here.
 
+Install build
+```
+python3 -m pip install --upgrade build
+```
+
+Specify version if it needs to be incremented in Setup.py
+
+Run the following command from the directory where setup.py is located (this should be scSHARP_tool per git hub repo name)
+
+```
+python3 -m build
+```
+
 Install/ upgrade twine:
 ```
 python3 -m pip install --upgrade twine
