@@ -12,7 +12,7 @@ build:
     python: "3.9"
   commands: 
   - pip install -r docs/requirements.txt
-  - conda install -c ostrokach-forge torch-cluster
+  - pip install torch-cluster
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
