@@ -4,5 +4,4 @@ torch>=1.10.0
 torch-geometric>=2.0.2
 anndata>=0.8.0
 scanpy>=1.9.1
-rpy2>=3.5.3
 captum>=0.5.0
