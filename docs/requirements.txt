@@ -5,4 +5,4 @@ torch-geometric>=2.0.2
 anndata>=0.8.0
 scanpy>=1.9.1
 captum>=0.5.0
-torch-cluster==1.5.9 --install-option='-f https://data.pyg.org/whl/torch-1.8.1+cu102.html'
+torch-cluster==1.5.9 --find-links='https://data.pyg.org/whl/torch-1.8.1+cu102.html'
