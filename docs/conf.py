@@ -2,8 +2,10 @@ import os, sys
 # sys.path.append(os.path.abspath('/Users/maxperozek/CP499/scSHARP_tool'))
 # sys.path.append(os.path.relpath('scSHARP_tool'))
 
-sys.path.insert(0, os.path.join(os.path.dirname((os.path.abspath('.')))))
-print(f'PATH: {sys.path}')
+# sys.path.insert(0, os.path.join(os.path.dirname((os.path.abspath('.')), '..', 'scSHARP')))
+sys.path.insert(0, '..')
+print(sys.path)
+
 
 # Configuration file for the Sphinx documentation builder.
 #
