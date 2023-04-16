@@ -35,6 +35,7 @@ class scSHARP:
         config: config file for the 
         ncells: number of cells from dataset to use for model prediction
         pre_processed: boolean. True when dataset has been preprocessed
+        
     """
 
     def __init__(self, data_path, tools, marker_path, preds_path=None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
@@ -172,6 +173,7 @@ class scSHARP:
             conf_scores: model confidence values for each prediction 
         
         """
+
         self.batch_size = batch_size 
         self.prepare_data(thresh)
 
@@ -193,6 +195,7 @@ class scSHARP:
     def knn_consensus(self, k=5):
         """returns knn consensus predictions for unconfidently
         labled cells based on k nearest confident votes"""
+
         if not self.pre_processed:
             self.prepare_data()
 
@@ -210,6 +213,7 @@ class scSHARP:
         int_df: The interpretation dataframe with rows corresponding with genes and columns corresponding to cell types.
             Values indicate the model's gradient of cell type with respect to the corresponding input gene after absolute value and scaling by cell type
         """
+
         #need to add this as an attribute
         #if not self.model_trained:
         #    raise ModelNotTrainedException('Trained model required for model interpretation. See scSHARP.run_prediction() to train')
@@ -264,7 +268,8 @@ class scSHARP:
         return ax
 
     def __get_most_expressed(self, df, n=5):
-        '''Get top n marker genes for each cell type'''
+        """Get top n marker genes for each cell type"""
+
         markers = []
         for ctype in df.columns:
             ordered_df = df.sort_values(ctype, ascending=False).head(n)
@@ -301,7 +306,9 @@ class scSHARP:
         return self.all_labels
     
     def component_correlation(self):
-        """Returns correlation values and heatmap between tool columns"""
+        """Returns correlation values and heatmap between tool columns
+        """
+
         preds = self.get_component_preds(factorized=True)
         corr_mat = np.corrcoef(np.array(preds), rowvar=False)
         corr_mat_df = pd.DataFrame(corr_mat, columns=preds.columns, index=preds.columns)
@@ -328,6 +335,7 @@ class scSHARP:
         -------
         Plot
         """
+
         if self.final_preds == None: raise ModelNotTrainedException()
         
         if genes == None:
@@ -341,7 +349,8 @@ class scSHARP:
         return plot
 
     def unfactorize_preds(self):
-        """function that maps preds back to cell types"""
+        """function that maps preds back to cell types
+        """
 
         if self.final_preds == None: raise ModelNotTrainedException()
 
@@ -355,7 +364,9 @@ class scSHARP:
         return np.array(new_final_preds).astype('str')
         
     def model_eval(self, config, batch_size, neighbors, dropout, random_inits, training_epochs=150):
-        """Evaluates a model for a single hyperparameter configuration"""
+        """Evaluates a model for a single hyperparameter configuration
+        """
+
         # self.__prepare_data_grid_search()
         self.prepare_data()
 
@@ -388,13 +399,19 @@ class scSHARP:
 
 
 class ModelNotTrainedException(Exception):
-    """Raised when a model has not yet been trained but is needed in computation"""
+    """Raised when a model has not yet been trained but is needed in computation
+    """
+
     pass
 
 class InterpretationNotRan(Exception):
-    """Raised when model interpretation has not been ran but is needed in computation"""
+    """Raised when model interpretation has not been ran but is needed in computation
+    """
+
     pass
 
 class ComponentPredictionsException(Exception):
-    """Raised when computation requires running component tools"""
+    """Raised when computation requires running component tools
+    """
+
     pass

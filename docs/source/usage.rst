@@ -1,6 +1,0 @@
-scSHARP Usage
-=============
-
-Installation
-------------
-
