@@ -2,6 +2,9 @@ import os, sys
 # sys.path.append(os.path.abspath('/Users/maxperozek/CP499/scSHARP_tool'))
 # sys.path.append(os.path.relpath('scSHARP_tool'))
 
+sys.path.insert(0, os.path.join(os.path.dirname((os.path.abspath('.')))))
+print(f'PATH: {sys.path}')
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -13,7 +16,7 @@ import os, sys
 project = 'scSHARP'
 copyright = '2023, Daniel Lewinsohn, Max Perozek, William Holtz, Ben Modlin'
 author = 'Daniel Lewinsohn, Max Perozek, William Holtz, Ben Modlin'
-release = '1.0.0'
+release = '1.0.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
