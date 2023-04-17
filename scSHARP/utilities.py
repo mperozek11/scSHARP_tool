@@ -7,9 +7,9 @@ from sklearn.decomposition import PCA
 import numpy as np
 import random
 import math
-import rpy2.robjects as ro
-from rpy2.robjects import pandas2ri
-from rpy2.robjects.conversion import localconverter
+# import rpy2.robjects as ro
+# from rpy2.robjects import pandas2ri
+# from rpy2.robjects.conversion import localconverter
 import json
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
@@ -124,18 +124,18 @@ def read_marker_file(file_path):
 
     return markers, marker_names
 
-def label_counts(data_path, tools, ref_path, ref_label_path, marker_path):
-    """Label inputted dataset with mutlitple annotation tools"""
+# def label_counts(data_path, tools, ref_path, ref_label_path, marker_path):
+#     """Label inputted dataset with mutlitple annotation tools"""
 
-    markers, marker_names = read_marker_file(marker_path)
+#     markers, marker_names = read_marker_file(marker_path)
 
-    ro.r.source('tools/r_tools.R')
-    #markers = 
-    preds = ro.r.run(data_path, tools, markers, marker_names, ref_path, ref_label_path)
-    with localconverter(ro.default_converter + pandas2ri.converter):
-        preds = ro.conversion.rpy2py(preds)
+#     ro.r.source('tools/r_tools.R')
+#     #markers = 
+#     preds = ro.r.run(data_path, tools, markers, marker_names, ref_path, ref_label_path)
+#     with localconverter(ro.default_converter + pandas2ri.converter):
+#         preds = ro.conversion.rpy2py(preds)
     
-    return preds
+#     return preds
 
 def load_model(file_path, target_types):
         """loads model from json format"""

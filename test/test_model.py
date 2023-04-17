@@ -23,7 +23,8 @@ def test_model(data_folders, tool_list, votes, model_file, neighbors, nbatch, tr
                 all_labels = all_labels[tools]
                 #raise Exception("wrong amount of tools in file")
         else:
-            all_labels = utilities.label_counts(data_path,tools,ref_path,ref_label_path,marker_path)
+            raise Exception('generate predictions first')
+            # all_labels = utilities.label_counts(data_path,tools,ref_path,ref_label_path,marker_path)
         
         # read in dataset
         X = pd.read_csv(data_path, index_col=0)
