@@ -7,7 +7,6 @@ You will need one R dependency to run scSHARP. Repository and install instructio
 
 ## scSHARP Installation
 
-Install instructions are based on a 
 ### Create a new conda environment
 ```
 conda create -n <env name> python=3.9
