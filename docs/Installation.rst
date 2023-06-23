@@ -28,19 +28,6 @@ Create a conda environment:
 
 ``conda activate <env name>``
 
-Torch cluster
-*************
-
-Torch cluster needs to be installed separately.
-
-Installing with Pip:
-^^^^^^^^^^^^^^^^^^^^
-``pip install torch-cluster``
-
-Installing with conda
-^^^^^^^^^^^^^^^^^^^^^
-``conda install -c ostrokach-forge torch-cluster``
-
 scSHARP package install
 ***********************
 
