@@ -2,6 +2,8 @@
 
 Repository for "Consensus Label Propagation with Graph Convolutional Networks for Single-Cell RNA Sequencing Cell Type Annotation" extended abstract submission for Learning on Graphs Conference and full paper available at https://doi.org/10.1101/2022.11.23.517739.
 
+See the package documentation here: https://scsharp-tool.readthedocs.io/en/latest/
+
 ## R tools Installation
 You will need one R dependency to run scSHARP. Repository and install instructions can be found [here](https://github.com/W-Holtz/R4scSHARP)
 
