@@ -33,6 +33,7 @@ conda install pytorch -c pytorch
 ```
 conda install pyg -c pyg
 ```
+Depending on your system, additional PyTorch Geometric dependences such as torch-cluster may need to be manually installed.
 
 ### Install scSHARP
 You will need to use the version of pip installed to your new conda environemt. In order to find the path to your conda environment, you can use:

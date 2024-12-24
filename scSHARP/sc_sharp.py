@@ -35,14 +35,32 @@ class scSHARP:
         config: config file for the 
         ncells: number of cells from dataset to use for model prediction
         pre_processed: boolean. True when dataset has been preprocessed
+        consensus_labels: path to consensus labels file, should be list of strings indicating cell type for each cell, unconidently labeled cells should be "unconfident"
         
     """
+    # allow marker_path to be None
+    # add option for label input
+    # set marker names
+    # set factor keys
 
-    def __init__(self, data_path, tools, marker_path, preds_path=None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False):
+    def __init__(self, data_path, tools=None, marker_path=None, preds_path=None, neighbors=2, config="2_40.txt", ncells="all", anndata_layer=None, anndata_use_raw=False, consensus_labels=None):
+        
+        if (tools is None and marker_path is None and consensus_labels is None):
+            raise Exception("Must provide tools and marker_path, or consensus_labels")
+        
+        self.use_consensus_labels = False
+
+        if (tools is None and marker_path is None):
+            self.use_consensus_labels = True
+            if 'unconfident' not in consensus_labels:
+                raise Exception("Consensus labels must contain 'unconfident' to indicate unconfidently labeled cells")
+        
         self.data_path = data_path
         self.tools = tools
         self.marker_path = marker_path
 
+        self.consensus_labels = consensus_labels
+        
         self.preds_path = preds_path
         self.neighbors = neighbors
         self.config = config
@@ -69,7 +87,13 @@ class scSHARP:
         self.factor_keys = None
         self.final_int_df = None
 
-        _,self.marker_names = utilities.read_marker_file(self.marker_path)
+        if self.use_consensus_labels:
+            consensus_labels = pd.Series(consensus_labels)
+            self.marker_names = list(consensus_labels.unique())
+            self.marker_names.remove('unconfident')
+
+        else:
+            _,self.marker_names = utilities.read_marker_file(self.marker_path)
         self.targets = len(self.marker_names)
         
     def run_tools(self, out_path, ref_path, ref_label_path):
@@ -110,13 +134,14 @@ class scSHARP:
     def prepare_data(self, thresh=0.51, normalize=True, scale=True, targetsum=1e4, run_pca=True, comps=500, cell_fil=0, gene_fil=0):
         """Prepares dataset for training and prediction"""
         
-        if os.path.exists(self.preds_path):
-            self.all_labels = pd.read_csv(self.preds_path, index_col=0)
-            if self.all_labels.shape[1] != len(self.tools): 
-                self.all_labels = self.all_labels[self.tools]
-                
-        else:
-            raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
+        if not self.use_consensus_labels:
+            if os.path.exists(self.preds_path):
+                self.all_labels = pd.read_csv(self.preds_path, index_col=0)
+                if self.all_labels.shape[1] != len(self.tools): 
+                    self.all_labels = self.all_labels[self.tools]
+                    
+            else:
+                raise Exception("Prediction Dataframe not Found at " + self.preds_path) 
 
         # read in dataset
         # if .h5ad format
@@ -146,10 +171,18 @@ class scSHARP:
         self.cell_names = self.marker_names.copy()
         self.cell_names.sort()
 
-        all_labels_factored, self.factor_keys = utilities.factorize_df(self.all_labels, self.marker_names)
-        encoded_labels = utilities.encode_predictions(all_labels_factored)
+        if not self.use_consensus_labels:
+            all_labels_factored, self.factor_keys = utilities.factorize_df(self.all_labels, self.marker_names)
+            encoded_labels = utilities.encode_predictions(all_labels_factored)
 
-        self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = thresh)
+            self.confident_labels = utilities.get_consensus_labels(encoded_labels, necessary_vote = thresh)
+        
+        else:
+            # Map consensus labels from strings to indices based on cell_names
+            label_to_idx = {cell_type: idx for idx, cell_type in enumerate(self.cell_names)}
+            self.confident_labels = np.array([label_to_idx[label] if label in label_to_idx else -1 for label in self.consensus_labels])
+            self.factor_keys = self.cell_names.copy()
+
         self.pre_processed = True
     
     def run_prediction(self, training_epochs=150, thresh=0.51, batch_size=40, seed=8):
